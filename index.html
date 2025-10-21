@@ -467,6 +467,168 @@
             background-color: #d35400;
         }
 
+        /* Watch Trailer Modal */
+        .trailer-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .trailer-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .trailer-container {
+            width: 90%;
+            max-width: 900px;
+            position: relative;
+        }
+
+        .close-trailer {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: none;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .trailer-iframe {
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            position: relative;
+        }
+
+        .trailer-iframe iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 8px;
+        }
+
+        .btn-watch {
+            background-color: #3498db;
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-watch:hover {
+            background-color: #2980b9;
+        }
+
+        /* Download Modal */
+        .download-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition);
+        }
+
+        .download-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .download-container {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 25px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .download-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .download-quality {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .quality-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background-color: var(--dark);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .quality-option:hover {
+            background-color: var(--gray-dark);
+        }
+
+        .quality-option.selected {
+            border: 2px solid var(--primary);
+        }
+
+        .quality-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .quality-name {
+            font-weight: 600;
+        }
+
+        .quality-size {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .download-action {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-download-action {
+            flex: 1;
+            padding: 12px;
+            border-radius: 5px;
+            font-weight: 600;
+        }
+
+        .btn-cancel {
+            background-color: var(--gray-dark);
+            color: var(--text-primary);
+        }
+
+        .btn-cancel:hover {
+            background-color: var(--gray);
+        }
+
         /* Watchlist */
         .watchlist-grid {
             display: grid;
@@ -870,6 +1032,10 @@
             .modal-actions {
                 flex-direction: row;
             }
+            
+            .download-quality {
+                flex-direction: row;
+            }
         }
 
         /* Desktop Styles */
@@ -1132,6 +1298,32 @@
         </div>
     </div>
 
+    <!-- Watch Trailer Modal -->
+    <div class="trailer-modal" id="trailerModal">
+        <div class="trailer-container">
+            <button class="close-trailer" id="closeTrailer">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="trailer-iframe" id="trailerIframe">
+                <!-- YouTube iframe will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Modal -->
+    <div class="download-modal" id="downloadModal">
+        <div class="download-container">
+            <h3 class="download-title" id="downloadMovieTitle">Download Movie</h3>
+            <div class="download-quality" id="downloadQuality">
+                <!-- Quality options will be inserted here -->
+            </div>
+            <div class="download-action">
+                <button class="btn-download-action btn-cancel" id="cancelDownload">Cancel</button>
+                <button class="btn-download-action btn-primary" id="confirmDownload">Download</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <footer>
         <div class="container">
@@ -1207,12 +1399,22 @@
         const emptyWatchlist = document.getElementById('emptyWatchlist');
         const searchInput = document.querySelector('.search-input');
         const searchBtn = document.querySelector('.search-btn');
+        const trailerModal = document.getElementById('trailerModal');
+        const closeTrailer = document.getElementById('closeTrailer');
+        const trailerIframe = document.getElementById('trailerIframe');
+        const downloadModal = document.getElementById('downloadModal');
+        const downloadMovieTitle = document.getElementById('downloadMovieTitle');
+        const downloadQuality = document.getElementById('downloadQuality');
+        const cancelDownload = document.getElementById('cancelDownload');
+        const confirmDownload = document.getElementById('confirmDownload');
 
         // State
         let currentMovies = [];
         let watchlist = JSON.parse(localStorage.getItem('watchlist')) || [];
         let isLoggedIn = false;
         let isPremium = false;
+        let selectedMovie = null;
+        let selectedQuality = null;
 
         // Theme Toggle
         themeToggle.addEventListener('click', () => {
@@ -1256,6 +1458,40 @@
             }
         });
 
+        // Trailer Modal
+        closeTrailer.addEventListener('click', () => {
+            trailerModal.classList.remove('active');
+            // Stop the video when closing
+            const iframe = trailerIframe.querySelector('iframe');
+            if (iframe) {
+                const iframeSrc = iframe.src;
+                iframe.src = iframeSrc; // This stops the video
+            }
+        });
+
+        trailerModal.addEventListener('click', (e) => {
+            if (e.target === trailerModal) {
+                trailerModal.classList.remove('active');
+                // Stop the video when closing
+                const iframe = trailerIframe.querySelector('iframe');
+                if (iframe) {
+                    const iframeSrc = iframe.src;
+                    iframe.src = iframeSrc; // This stops the video
+                }
+            }
+        });
+
+        // Download Modal
+        cancelDownload.addEventListener('click', () => {
+            downloadModal.classList.remove('active');
+        });
+
+        downloadModal.addEventListener('click', (e) => {
+            if (e.target === downloadModal) {
+                downloadModal.classList.remove('active');
+            }
+        });
+
         // Fetch Popular Movies from TMDb API
         async function fetchPopularMovies() {
             try {
@@ -1289,6 +1525,20 @@
             } catch (error) {
                 console.error('Error fetching movie cast:', error);
                 return [];
+            }
+        }
+
+        // Fetch Movie Trailers from TMDb API
+        async function fetchMovieTrailers(movieId) {
+            try {
+                const response = await fetch(`${BASE_URL}/movie/${movieId}/videos?api_key=${API_KEY}&language=en-US`);
+                const data = await response.json();
+                // Find the first trailer
+                const trailer = data.results.find(video => video.type === 'Trailer' && video.site === 'YouTube');
+                return trailer ? trailer.key : null;
+            } catch (error) {
+                console.error('Error fetching movie trailers:', error);
+                return null;
             }
         }
 
@@ -1364,11 +1614,14 @@
         async function showMovieDetails(movieId) {
             const movie = await fetchMovieDetails(movieId);
             const cast = await fetchMovieCast(movieId);
+            const trailerKey = await fetchMovieTrailers(movieId);
             
             if (!movie) {
                 alert('Error loading movie details. Please try again.');
                 return;
             }
+
+            selectedMovie = movie;
 
             document.getElementById('movies').style.display = 'none';
             movieDetails.style.display = 'block';
@@ -1396,10 +1649,13 @@
                         </div>
                         
                         <div class="download-options">
-                            <button class="btn-download btn-free">
+                            ${trailerKey ? `<button class="btn-download btn-watch" id="watchTrailer">
+                                <i class="fas fa-play"></i> Watch Trailer
+                            </button>` : ''}
+                            <button class="btn-download btn-free" id="downloadFree">
                                 <i class="fas fa-download"></i> Download Free (480p)
                             </button>
-                            <button class="btn-download btn-premium" ${!isPremium ? 'disabled' : ''}>
+                            <button class="btn-download btn-premium" ${!isPremium ? 'disabled' : ''} id="downloadPremium">
                                 <i class="fas fa-crown"></i> Download HD (Premium)
                             </button>
                         </div>
@@ -1407,8 +1663,108 @@
                 </div>
             `;
 
+            // Add event listeners to buttons
+            if (trailerKey) {
+                document.getElementById('watchTrailer').addEventListener('click', () => {
+                    showTrailer(trailerKey);
+                });
+            }
+
+            document.getElementById('downloadFree').addEventListener('click', () => {
+                showDownloadOptions(movie, false);
+            });
+
+            if (isPremium) {
+                document.getElementById('downloadPremium').addEventListener('click', () => {
+                    showDownloadOptions(movie, true);
+                });
+            }
+
             // Scroll to top of details section
             movieDetails.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Show Trailer
+        function showTrailer(trailerKey) {
+            trailerIframe.innerHTML = `<iframe src="https://www.youtube.com/embed/${trailerKey}?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+            trailerModal.classList.add('active');
+        }
+
+        // Show Download Options
+        function showDownloadOptions(movie, isPremium) {
+            selectedMovie = movie;
+            downloadMovieTitle.textContent = `Download ${movie.title}`;
+            
+            // Clear previous options
+            downloadQuality.innerHTML = '';
+            
+            // Define quality options
+            const qualityOptions = isPremium ? [
+                { name: 'HD 720p', size: '1.2 GB', quality: '720p' },
+                { name: 'Full HD 1080p', size: '2.5 GB', quality: '1080p' },
+                { name: '4K Ultra HD', size: '5.8 GB', quality: '4k' }
+            ] : [
+                { name: 'SD 480p', size: '450 MB', quality: '480p' }
+            ];
+            
+            // Create quality options
+            qualityOptions.forEach(option => {
+                const qualityOption = document.createElement('div');
+                qualityOption.className = 'quality-option';
+                qualityOption.innerHTML = `
+                    <div class="quality-info">
+                        <span class="quality-name">${option.name}</span>
+                        <span class="quality-size">${option.size}</span>
+                    </div>
+                    <i class="fas fa-check" style="display: none;"></i>
+                `;
+                
+                qualityOption.addEventListener('click', () => {
+                    // Remove selected class from all options
+                    document.querySelectorAll('.quality-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                        opt.querySelector('.fa-check').style.display = 'none';
+                    });
+                    
+                    // Add selected class to clicked option
+                    qualityOption.classList.add('selected');
+                    qualityOption.querySelector('.fa-check').style.display = 'block';
+                    
+                    // Set selected quality
+                    selectedQuality = option.quality;
+                });
+                
+                downloadQuality.appendChild(qualityOption);
+            });
+            
+            // Select first option by default
+            if (qualityOptions.length > 0) {
+                downloadQuality.querySelector('.quality-option').click();
+            }
+            
+            downloadModal.classList.add('active');
+        }
+
+        // Handle Download Confirmation
+        confirmDownload.addEventListener('click', () => {
+            if (!selectedQuality) {
+                alert('Please select a download quality');
+                return;
+            }
+            
+            // Simulate download
+            simulateDownload(selectedMovie, selectedQuality);
+            downloadModal.classList.remove('active');
+        });
+
+        // Simulate Download
+        function simulateDownload(movie, quality) {
+            // In a real application, this would trigger an actual download
+            // For demo purposes, we'll just show an alert
+            alert(`Downloading "${movie.title}" in ${quality} quality...\n\nIn a real application, this would start the download.`);
+            
+            // Log the download for demo purposes
+            console.log(`Download started: ${movie.title} (${quality})`);
         }
 
         // Back to Movies
